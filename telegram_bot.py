@@ -170,38 +170,44 @@ class TelegramBot:
 
     def _format_response_message(self, product_info: dict,
                                  generated_links: dict):
-        """تهيئة نص الرسالة لإرسالها عبر تيليجرام باللغة العربية."""
-        product_title = product_info.get('title')
+        """Simplified message format with product info and affiliate link."""
+        product_title = product_info.get('title', 'منتج بدون اسم')
         product_price = product_info.get('price')
         product_currency = product_info.get('currency')
         details_source = product_info.get('source')
 
-        message_lines = []
-        message_lines.append(f"<b>{rtl_mark}{product_title[:250]}</b>")
-
-        arabic_currency = ARABIC_CURRENCY_NAMES.get(product_currency, product_currency)
-
-        if details_source == "API" and product_price:
-            price_str = f"{product_price} {arabic_currency}".strip()
-            message_lines.append(f"\n<b>السعر بعد الخصم:</b> {price_str}\n")
-        elif details_source == "Scraped":
-            message_lines.append("\n<b>السعر بعد الخصم:</b> غير متوفر\n")
-        else:
-            message_lines.append("\n<b>تفاصيل المنتج غير متوفرة</b>\n")
-
-        message_lines.append("<b>العروض المتاحة:</b>")
-
-        for offer_key in OFFER_ORDER:
-            link = generated_links.get(offer_key)
-            offer_name = OFFER_PARAMS[offer_key].label
+        # Use only the first successful affiliate link
+        affiliate_link = None
+        for link in generated_links.values():
             if link:
-                message_lines.append(
-                    f'{offer_name}: <a href="{link}">اضغط هنا</a>')
-            else:
-                message_lines.append(f"{offer_name}: ❌ فشل في الإنشاء")
+                affiliate_link = link
+                break
 
-        message_lines.append("\n<i>تم الإنشاء بواسطة P4uDeals</i>")
-        return "\n".join(message_lines)
+        # Price string
+        if details_source == "API" and product_price:
+            price_str = f"💸 ${product_price}"
+        elif details_source == "Scraped":
+            price_str = "💸 السعر غير متوفر"
+        else:
+            price_str = "💸 غير متوفر"
+
+        # Dummy rating placeholder (AliExpress API doesn’t return rating in current flow)
+        rating_str = "⭐ N/A"
+
+        message = (
+            "🪙 Coin Deals (Extra X% off)\n\n"
+            f"<b>{product_title[:250]}</b>\n\n"
+            f"{price_str}\n\n"
+            f"{rating_str}\n\n"
+            f"Buy it: {affiliate_link or '❌ لا يوجد رابط'}\n\n"
+            "يجب اختيار بلد الحساب كندا 🇨🇦\n\n"
+            "🔎 صفحة البحث المباشر على تخفيضات العملات من هنا:\n"
+            "🔗 https://s.click.aliexpress.com/e/_ooVqQd5\n"
+            "🔥 صفحة أقوى تخفيضات العملات من هنا:\n"
+            "🔗 https://s.click.aliexpress.com/e/_opRDuTP"
+        )
+        return message
+
 
     def _create_inline_keyboard(self):
         """Creates the standard inline keyboard markup."""
